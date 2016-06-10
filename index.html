@@ -1,0 +1,1737 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>C++17の標準ライブラリ</title>
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+
+<section>
+<h1>
+C++17の標準ライブラリ
+</h1>
+</section>
+
+<section>
+<p>
+発表者：江添亮
+</p>
+
+<p>
+言語：C++
+</p>
+
+<p>
+仕事：ドワンゴ
+</p>
+
+<p>
+趣味：ボルダリング、factorio
+</p>
+
+</section>
+
+<section>
+<p>
+C++17
+</p>
+
+<p>
+2017年に発行される予定の標準規格
+</p>
+</section>
+
+<section>
+<p>
+変更点
+</p>
+
+<p>
+多数のマイナーな問題の修正
+</p>
+
+<p>
+コア言語の新機能は少ない
+</p>
+
+<p>
+新しいライブラリが多い
+</p>
+</section>
+
+<section>
+<h1>
+C++17の標準ライブラリの紹介
+</h1>
+
+<p>
+正式な規格はまだ変わる可能性がある
+</p>
+</section>
+
+<section>
+<h1>
+文字列検索
+</h1>
+
+<p>
+みんな文字列検索してますか？
+</p>
+</section>
+
+<section id="bmsearch">
+<p>
+boyer moore search
+</p>
+
+<p>
+Robert S. BoyerとJ Strother Mooreが1977に発表した
+<p>
+
+<p>
+高速な文字列検索アルゴリズム
+</p>
+
+<p>
+みんな知ってるよね？
+</p>
+</section>
+
+<section>
+<p>
+知らない方に朗報
+</p>
+
+<p>
+Donald Knuth著
+</p>
+
+<p>
+The Art of Computer Programming Vol.4A
+</p>
+
+<p>
+アスキードワンゴから今秋発売予定
+</p>
+</section>
+
+<section>
+<p>
+コード例
+</p>
+
+<pre><code class='cpp'>    auto pattern = "..."s ;
+    auto text = "..."s ; 
+
+    auto bm_search = 
+        make_boyer_moore_searcher
+            ( begin(pattern), end(pattern) ) ;
+
+    auto iter = bm_search( begin(text), end(text) ) ;
+</code></pre>
+</section>
+
+<section>
+<p>
+ジェネリックな実装になっている
+</p>
+
+<p>
+char型以外でも使用可能
+</p>
+</section>
+
+<section>
+<p>
+よくあるcharに対するBM法の実装
+</p>
+
+<p>
+パターン中の文字に対応するスキップ数をテーブルで持っておく
+</p>
+
+<pre><code class="cpp">// charの全状態数
+std::size_t skip_table[256] ;
+
+std::string pattern ;
+auto len = pattern.size() ;
+
+std::fill_n( table, 256, len ) ;
+
+for ( auto c : pattern )
+{
+    skip_table[c] = len-- -1 :
+}
+</code></pre>
+</section>
+
+<section>
+<p>
+char16_tなら？
+</p>
+
+<pre><code class="cpp">// 524KB
+// sizeof(size_t) == 8
+std::size_t skip_table[65536] ;
+</code></pre>
+</section>
+
+<section>
+<p>
+char32_tなら？
+</p>
+
+<pre><code class="cpp">// 34GB
+std::size_t skip_table[4294967296] ;
+</code></pre>
+</section>
+
+<section>
+<p>
+パターンに含まれている文字種は少ないので
+</p>
+
+<p>
+unordered_mapで管理すればいい
+</p>
+
+<pre><code>std::basic_string&lt;T&gt; pattern ;
+auto len = pattern.size() ;
+
+std::unordered_map&lt;T, std::size_t&gt; skip_table ;
+
+for ( auto c : pattern )
+{
+    skip_table[c] = len-- -1 ;
+}
+</code></pre>
+</section>
+
+
+<section>
+<p>
+unordered連想コンテナーを使うことで
+</p>
+
+<p>
+hash対応した任意の型に対して使用できる
+</p>
+
+<p>
+charの場合に最適化することも可能
+</p>
+</section>
+
+<section>
+<p>
+boyer_moore_horspool_searcher
+</p>
+
+<p>
+実行時間と引き換えにメモリ消費量が少ない版
+</p>
+</section>
+
+<section>
+<p>
+optional&lt;T&gt;
+</p>
+
+<p>
+T型のオブジェクトを持っているかもしれないクラス
+</p>
+
+</section>
+
+<section>
+<p>
+期待するオブジェクトを生成できず
+</p>
+<p>
+エラー通知の必要のある関数
+</p>
+
+<pre><code class="cpp">// 除算する関数
+int div( int x, int y )
+{
+    if ( y != 0 )
+        return { x / y } ;
+    else
+        return // どうする？ 
+}
+</code></pre>
+</section>
+
+<section>
+<h1>よくある対応</h1>
+
+<p>
+特別な値を返す
+</p>
+
+<p>
+この場合は使えない
+</p>
+
+<p>
+結果として通知する型はすべての値を取りうる
+</p>
+</section>
+
+<section>
+<h1>よくある対応</h1>
+
+<p>
+戻り値と引数で結果を返す
+</p>
+
+<p>
+極めて読みづらい
+</p>
+
+<pre><code class="cpp">// 戻り値でエラー通知、引数で結果
+bool div( int x, int y, int &amp; result ) ;
+// 戻り値で結果、引数でエラー通知
+int div( int x, int y, bool &amp; error ) ;
+</code></pre>
+</section>
+
+<section>
+<h1>よくある対応</h1>
+
+<p>
+グローバル変数
+</p>
+
+<p>
+並列処理と相性が悪い
+</p>
+
+<pre><code class="cpp">if ( (fp = fopen("foobar", "r")) == NULL )
+{
+    if ( errno == EINVAL )
+        std::cout &lt;&lt; "引数が間違っている\n" ;
+    else if ( errno == ENOMEM )
+        std::cout &lt;&lt; "メモリが足りない\n" ;
+}
+<</pre></code>
+
+</section>
+
+<section>
+<h1>よくある対応</h1>
+
+<p>
+例外
+</p>
+
+<p>
+この場合、頻繁に発生する可能性があるので使いづらい
+</p>
+</section>
+
+<section>
+<h1>解決策</h1>
+
+<p>
+optional&lt;T&gt;
+</p>
+
+<p>
+値を格納するか、していないクラス
+</p>
+</section>
+
+<section>
+
+<h1>
+使い方
+</h1>
+
+<p>関数側</p>
+
+<pre><code class="cpp">std::optional&lt;int&gt; div( int x, int y )
+{
+    if ( y != 0 )
+        return { x / y } ;
+    else
+        return {} ;
+}
+</code></pre>
+</section>
+
+<section>
+<h1>使い方</h1>
+
+<p>
+呼び出し元
+</p>
+
+<p>
+値がある場合boolに変換される
+</p>
+
+<p>
+値はoptional::value()で取り出せる
+</p>
+
+<pre><code class="cpp">void f( int x, int y )
+{
+    auto result = div( x, y ) ;
+
+    if ( result )
+        // 値あり
+        result.value() ;
+    else
+        // 値なし
+}
+</code></pre>
+</section>
+
+<section>
+<p>
+値がないのにvalue()を呼び出すと例外
+</p>
+
+<p>
+bad_optional_accessがthrowされる
+</p>
+
+<pre><code class="cpp">auto result = div( 1, 0 ) ;
+result.value ; // 例外
+</code></pre>
+</section>
+
+<section>
+<p>
+value_or
+</p>
+<p>
+値がないときにデフォルト値を使う
+</p>
+
+<pre><code>auto result = div( 1, 0 ) ;
+result.value_or(0) ; // 0
+</code></pre>
+</section>
+
+<section>
+<p>
+any
+</p>
+
+<p>
+どんな型でも格納できるクラス
+</p>
+</section>
+
+<section>
+<p>
+使い方
+</p>
+
+<p>
+It Just Works.
+</p>
+
+<pre><code class="cpp">std::any a ;
+a = 0 ; // int
+a = 0.0 ; // double
+a = "hello"s ; // std::string
+a = std::vector&lt;int&gt;{} ;
+</code></pre>
+</section>
+
+<section>
+<p>
+どんな型でも代入できる
+</p>
+
+<p>
+CopyConstructibleでさえあればいい
+</p>
+
+<p>
+テンプレートとか考える必要なし
+</p>
+</section>
+
+<section>
+<p>
+値の取り出し方
+</p>
+
+<p>
+any_cast&lt;T&gt;を使う
+</p>
+
+<p>
+値を取り出すには型を指定する必要がある
+</p>
+
+<p>
+型を間違えるとbad_any_castがthrowされる
+</p>
+
+
+<pre><code class="cpp">void f( std::any a )
+{
+    auto x = std::any_cast&lt;int&gt;(a) ;
+}
+</code></pre>
+</section>
+
+<section>
+<p>
+anyへのポインターを渡すと結果もポインターになる。
+</p>
+
+<p>
+型が違うとnullptrが返る
+</p>
+
+<pre><code class="cpp">void f( std::any a )
+{
+    auto p = std::any_cast&lt;int&gt;( &amp;a ) ;
+    if ( p != nullptr )
+        *p ; // int   
+}
+</code></pre>
+</section>
+
+<section>
+<p>
+string_view
+</p>
+
+<p>
+文字列ラッパー
+</p>
+</section>
+
+<section>
+<p>
+文字列を扱う方法がバラバラだ
+</p>
+
+<p>
+ライブラリはそれぞれに対応する必要がある
+</p>
+
+<pre><code class="cpp">// null終端配列
+void f( const char * str ) ;
+// 配列と要素数
+void f( const char * str, std::size_t len ) ;
+// basic_string
+void f( std::string const str ) ;
+</code></pre>
+</section>
+
+<section>
+<p>
+string_view
+</p>
+
+<p>
+文字列の差異を吸収してくれる
+</p>
+
+<p>
+文字列は所有しない
+</p>
+</section>
+
+<section>
+<p>
+使い方
+</p>
+
+<p>
+関数側
+</p>
+
+<p>
+引数をstring_viewで受けるだけ
+</p>
+
+
+<pre><code>
+void f( std::string_view str )
+{
+// std::stringと同じ感覚で使える。
+} ;
+</code></pre>
+</section>
+
+<section>
+<p>
+使い方
+</p>
+
+<p>
+呼び出し側
+</p>
+
+<p>
+string_viewが差異を吸収
+</p>
+
+<pre><code>// null終端配列
+f( str ) ;
+// 配列と要素数
+f( std::string_view{str, len} ) ;
+// basic_string
+f( str ) ;
+</code></pre>
+</section>
+
+<section>
+<h1>
+乱択
+</h1>
+
+<p>
+みんな乱択してますか？
+</p>
+</section>
+
+<section>
+<p>
+乱択とは
+</p>
+
+<p>
+ある要素の集合からN個の要素をランダムに選ぶ
+</p>
+
+<p>
+みんな知ってるよね？
+</p>
+</section>
+
+<section>
+<p>
+知らない方に朗報
+</p>
+
+<p>
+Donald Knuth著
+</p>
+
+<p>
+The Art of Computer Programming Vol.2
+</p>
+
+<p>
+アスキードワンゴから発売中
+</p>
+</section>
+
+<section>
+<p>
+C++17なら簡単
+</p>
+
+<pre><code>std::vector&lt;int&gt; input = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 } ;
+std::size_t const n = 5 ;
+std::vector&lt;int&gt; output( n ) ;
+std::sample( begin(input), end(input), begin(output), n ) ;
+</code></pre>
+</section>
+
+<section>
+<p>
+gcdとlcm
+</p>
+
+<p>
+追加される
+</p>
+
+<pre><code>std::gcd( m, n ) ;
+std::lcm( m, n ) ;
+</code></pre>
+</section>
+
+<section>
+<p>
+先ほどのスライドがわからなかった方に朗報
+</p>
+
+<p>
+Donald Knuth著
+</p>
+
+<p>
+The Art of Computer Programming Vol.1
+</p>
+
+<p>
+アスキードワンゴから発売中
+</p>
+</section>
+
+
+<section>
+<p>
+source_location
+</p>
+
+<p>
+ソースコード情報の取得ライブラリ
+</p>
+</section>
+
+<section>
+<p>
+ソースコード中の情報がほしい
+</p>
+
+<p>
+どうする？
+</p>
+
+<pre><code class="">int main(){
+    if ( !f() )
+    {
+        std::cout &lt;&lt;
+            "in function X,"
+            " f() returned false"
+            " in filename Y at line Z." ;
+    }
+
+}
+</code></pre>
+</section>
+
+<section>
+<p>
+Cプリプロセッサーマクロを使う
+</p>
+
+<p>
+__FILE__, __LINE__, __func__が使える
+</p>
+
+<p>
+ただしその場に書かなければならない。
+</p>
+
+<p>
+その場に定数として展開される
+</p>
+
+<p>
+単なるトークン列の置き換え
+</p>
+
+<p>
+使いづらい
+</p>
+</section>
+
+<section>
+<p>
+ソースコード情報をC++の言語から扱いたい
+</p>
+
+<p>
+ちゃんとC++でサポートされていて
+</p>
+
+<p>
+コードの中で使えるもの
+</p>
+</section>
+
+<section>
+<p>
+そこでsource_location
+</p>
+
+<p>
+ソースコードの情報を取得できる
+</p>
+
+<p>
+オブジェクトとして保持できる
+</p>
+</section>
+
+<section>
+<p>
+使い方
+</p>
+
+<pre><code class="cpp">// この場所のソースコード情報を取得
+auto s = std::source_location::current() ;
+// 行数
+auto line = s.line() ;
+// 行頭からの文字数
+auto column = s.column() ;
+// ファイル名
+auto file_name = s.file_name() ;
+// 関数名
+auto function_name = s.function_name() ;
+</code></pre>
+</section>
+
+<section>
+<p>
+関数のデフォルト実引数に使った場合
+</p>
+
+<p>
+呼び出し元のソースコード情報が得られる
+</p>
+
+<pre><code class="cpp">void log
+(
+    std::string msg,
+    std::source_location s = std::source_location::current()
+)
+{
+    // ログを取る
+}
+
+int main()
+{
+    log("main executed.") ; // この場所のソースコード情報を取得
+}
+</code></pre>
+</section>
+
+<section>
+<h1>
+乱数
+</h1>
+
+<p>
+みんな知ってるよね？
+</p>
+</section>
+
+<section>
+<p>
+知らない方に朗報
+</p>
+
+<p>
+Donald Knuth著
+</p>
+
+<p>
+The Art of Computer Programming Vol.2
+</p>
+
+<p>
+アスキードワンゴから発売中
+</p>
+</section>
+
+<section>
+<h1>
+と
+</h1>
+<h1>
+言いたい
+</h1>
+
+<h1>
+ところだが
+</h1>
+</section>
+
+<section>
+<p>
+Knuth本は乱数の均一分布方法についてまともに解説していない
+</p>
+
+<p>
+はっきりいって時代遅れ
+</p>
+
+<p>
+texのように
+</p>
+</section>
+
+<section>
+<p>
+C言語時代の乱数ライブラリ
+</p>
+
+<p>
+rand関数
+</p>
+
+<p>
+はっきり言ってクソ
+</p>
+</section>
+
+<section>
+
+<ul>
+<li>乱数の範囲がクソ</li>
+<li>乱数の生成もクソ</li>
+<li>使われ方もクソ</li>
+</ul>
+</section>
+
+<section>
+<p>
+乱数の範囲がクソ
+</p>
+
+<p>
+rand()の戻り値Nの範囲は
+</p>
+
+<p>
+\[0 \geq N \geq RAND\_MAX \]
+</p>
+
+<p>
+乱数の範囲を変える方法はない
+</p>
+</section>
+
+<section>
+<p>
+乱数の生成もクソ
+</p>
+
+<p>
+rand()はどのように乱数を生成するのか規定していない
+</p>
+
+<p>
+周期が短く、規則性がある、貧弱な実装もある
+</p>
+
+<p>
+乱数の生成方法を変える手段もない
+</p>
+</section>
+
+<section>
+
+<p>
+使われ方もクソ
+</p>
+
+<p>
+実際にほしい乱数は0からRAND_MAXまでの範囲ではない
+</p>
+
+<p>
+6面ダイスを実装するなら1から6までの範囲で均一に分布する乱数がほしい
+</p>
+
+<p>
+ではどうするのか？
+</p>
+</section>
+
+<section>
+
+<p>
+現実に書かれているクソコード
+</p>
+
+<p>
+このようなコードを書いてはならない
+</p>
+
+<pre><code class="cpp">int dice()
+{
+    return rand()%6 + 1 ;
+}
+</code></pre>
+
+</section>
+
+<section>
+<p>
+何故か
+</p>
+
+<p>
+乱数の生成方法がわからない
+</p>
+
+<p>
+値が均一に分布しないため
+</p>
+
+<p>
+6面ダイスならば1から6まで6種類の値がそれぞれ等確率で出るはず
+</p>
+
+</section>
+
+<section>
+<p>
+C++11の乱数ライブラリ
+</p>
+
+<p>
+とても美しい設計
+</p>
+
+<p>
+世のプログラマーの乱数需要はだいたい満たしている
+</p>
+
+<p>
+&lt;random&gt;
+</p>
+</section>
+
+<section>
+<p>
+乱数エンジン
+</p>
+
+<p>
+(random number engine)
+</p>
+
+<p>
+生の乱数ビット列を生成するクラス
+</p>
+
+<p>
+線形合同法: minstd_rand, minstd_rand0
+</p>
+
+<p>
+メルセンヌツイスター: mt19937, mt19937_64
+</p>
+
+<p>
+Ranlux: ranlux24_base, ranlux48_base, ranlux24, ranlux48
+</p>
+
+<p>
+KnuthのAlgorithm B: knuth_b
+</p>
+
+<p>
+/dev/urandom : random_device
+</p>
+
+<p>
+デフォルトの乱数: default_random_engine
+</p>
+
+</code></pre>
+</section>
+
+<section>
+<p>
+使い方
+</p>
+
+<p>
+operator ()を呼び出すだけ
+</p>
+
+<pre><code class="cpp">std::knuth_b knuth ;
+std::cout &lt;&lt; knuth() &lt;&lt; '\n' ;
+</code></pre>
+</section>
+
+
+<section>
+<p>
+ではさっそく
+</p>
+
+<p>
+これでは一様に分布しない
+</p>
+
+<pre><code class="cpp">int dice()
+{
+    thread_local std::knuth_b knuth ;
+    return knuth()%6 + 1 ;
+}
+</code></pre>
+</section>
+
+<section>
+<p>
+なぜ一様に分布しないのか
+</p>
+
+<p>
+6通りに分布させる必要がある
+</p>
+
+<p>
+コンピューターはバイナリで乱数を表現する
+</p>
+
+<p>
+最低3bit必要
+</p>
+
+<p>
+3 bitは8通りに分布する
+</p>
+
+<p>
+\(\frac{6}{8}\)は割り切れない
+</p>
+</section>
+
+<section>
+<p>
+割り切れるバイナリ乱数はあるのか？
+</p>
+
+<p>
+\[2^n \bmod 6 = 0\]
+</p>
+
+<p>
+となるn(\(n \geq 1\))を探せばよい
+</p>
+</section>
+
+<section>
+<p>
+よーし探すぞ
+</p>
+
+<p>
+\[ 2^n \bmod 6 = 2^n \bmod {2 \times 3} = 2^{n-1} \bmod 3 \]
+</p>
+
+<p>
+2は3で割り切れない
+</p>
+
+<p>
+存在しなかったよ
+</p>
+
+<p>
+無限のビット列を持ってこい
+</p>
+</section>
+
+<section>
+<p>
+6通りに均一に分布させる方法
+</p>
+
+<ol>
+<li>3bitの乱数rを生成</li>
+<li>6以上ならばgoto 1.</li>
+<li>乱数rは6通りに分布している</li>
+</ol>
+</section>
+
+<section>
+<pre><code>int dice()
+{
+    thread_local std::knuth_b knuth ;
+    auto rand_3bit = [&amp;]{ return knuth() &amp; 0b111 ; } ;
+    auto r = rand_3bit() ;
+
+    while ( r &gt;= 6 )
+    {
+        r = rand_3bit() ;
+    }
+
+    return r + 1 ;
+}</code></pre>
+</section>
+
+<section>
+<p>
+こんなのいちいち
+</p>
+
+<p>
+手で書いていられるか
+</p>
+</section>
+
+<section>
+<p>
+分布ライブラリ
+</p>
+
+<p>
+(distribution)
+</p>
+
+<p>
+生の乱数ビット列を望みの分布に加工するクラス
+</p>
+
+<p>
+プログラマーは望みの分布の情報だけ書けばよい
+</p>
+</section>
+
+<section>
+<p>
+整数の一様分布
+</p>
+
+<p>
+\(a \geq r \geq b\)の範囲に一様に分布する乱数rを返す
+</p>
+
+<pre><code class="cpp">int dice()
+{
+    thread_local std::knuth_b knuth ;
+    std::uniform_int_distribution&lt;int&gt; dist( 1, 6 ) ;
+    return d( knuth ) ;
+}
+</code></pre>
+</section>
+
+<section>
+<p>
+浮動小数点数の一様分布
+</p>
+
+<p>
+\(a \geq r \gt b \)の範囲の浮動小数点数の乱数rを返す
+</p>
+
+<p>
+範囲に注意
+</p>
+
+<p>
+値bは返さない
+</p>
+
+<pre><code class="cpp">namespace Math {
+double random()
+{
+    thread_local std::knuth_b knuth ;
+    std::uniform_real_distribution<double> dist( 0.0, 1.0 ) ;
+    return dist( knuth ) ;
+} 
+
+}
+</code></pre>
+</section>
+
+<section>
+<p>
+その他の分布
+</p>
+
+<p>
+ベルヌーイ分布、二項分布、幾何分布、負の二項分布
+</p>
+
+<p>
+ポアソン分布、指数分布、ガンマ分布、ワイブル分布、極値分布
+</p>
+
+<p>
+正規分布、対数正規分布、カイ二乗分布、コーシー分布、F分布、t分布
+</p>
+
+<p>
+離散分布系: 離散確率分布、区分的定数分布、区分的線形分布
+</p>
+</section>
+
+<section>
+<p>
+どの分布も目的に応じて役に立つ
+</p>
+</section>
+
+<section>
+<p>
+ベルヌーイ分布の使い方
+</p>
+
+<p>
+ある確率pでtrueを、1 - pの確率でfalseを返す
+</p>
+</section>
+
+<section>
+<p>
+お題: 宝箱
+</p>
+
+<ul>
+<li>30%の確率で宝が入っている</li>
+<li>70%の確率で空っぽである</li>
+<li>宝が入っているかどうかをboolで返す関数を書け</li>
+</ul>
+
+</section>
+
+<section>
+<p>
+素人の実装
+</p>
+
+<p>
+0から9までの一様分布する整数の乱数を作って
+</p>
+
+<p>
+2以下だったらtrueを返す
+</p>
+
+<p>
+値の範囲を与える必要がある
+</p>
+
+<p>
+比較も自分で書く必要がある
+</p>
+
+<p>
+間違いの元
+</p>
+
+<pre><code>bool open_chest()
+{
+    thread_local std::default_random_engine e ;
+    std::uniform_int_distribution&lt;int&gt; dist( 0, 9 ) ;
+
+    return dist( e ) &lt;= 2 ;
+}
+</code></pre>
+</section>
+
+<section>
+<p>
+C++プログラマーの実装
+</p>
+
+<p>
+確率だけ与えればよい
+</p>
+
+<pre><code class="cpp">bool open_chest()
+{
+    thread_local std::default_random_engine e ;
+    std::bernoulli_distribution dist( 0.3 ) ;
+
+    return dist( e ) ;
+}
+</code></pre>
+</section>
+
+
+<section>
+<p>
+結論
+</p>
+
+<p>
+C++11でプログラマーはあらゆる需要を満たす
+</p>
+
+<p>
+乱数ライブラリを手に入れた
+</p>
+
+<p>
+めでたしめでたし
+</p>
+</section>
+
+<section>
+<p>
+本当にそうか？
+</p>
+</section>
+
+<section>
+<p>
+エンジンと分布が分かれている設計
+</p>
+
+<p>
+実際に使うのは面倒じゃないか？
+</p>
+</section>
+
+<section>
+<p>
+ベルヌーイだのポアソンだのと言われてわかるか？
+</p>
+
+<p>
+<a href="#skip-history">ベルヌーイの歴史に興味がないので飛ばす</a>
+</p>
+</section>
+
+<section>
+<p>
+1680年
+</p>
+
+<p>
+天空に突如として巨大な彗星が出現
+</p>
+
+<p>
+昼間でも尾を引いて見えるほどの規模
+</p>
+
+<p>
+数カ月間も続いた
+</p>
+</section>
+
+<section>
+
+<p>
+一般大衆と坊主は大混乱
+</p>
+
+<p>
+神がお怒りに違いない
+</p>
+</section>
+
+<section>
+<p>
+その中、スイス、バーゼルで
+</p>
+
+<p>
+彗星を見つめる一人の若い神学徒がいた
+</p>
+</section>
+
+<section>
+<p>
+ヤコブ・ベルヌーイ
+</p>
+
+<p>
+(1655-1705)
+</p>
+
+<p>
+スイスのバーゼル生まれ
+</p>
+
+<p>
+父親の意向で神学を学ぶ
+</p>
+
+<p>
+後に数学者に転向
+</p>
+</section>
+
+
+<section>
+<p>
+ベルヌーイは考える
+</p>
+
+<p>
+この天変地異は物理学で説明できるはずだ
+</p>
+
+<p>
+神学は己の生涯をかけるに値する学問ではない
+</p>
+
+<p>
+己の人生は数学のためにある
+</p>
+
+</section>
+
+<section>
+
+<p>
+ベルヌーイは圧倒的な数学力で頭角を現す
+</p>
+
+<p>
+1686年にはバーゼル大学の教授になる
+</p>
+</section>
+
+<section>
+<p>
+ベルヌーイの疑問
+</p>
+
+<p>
+コインを投げて表になる確率は\(\frac{1}{2}\)
+</p>
+<p>
+6面ダイスを投げて1がでる確率は\(\frac{1}{6}\)
+</p>
+
+<p>
+しかし現実のコインやダイスには歪みがある
+</p>
+
+<p>
+確率のわからないものに対してはどうすればいいのだ
+</p>
+</section>
+
+<section>
+<p>
+ベルヌーイの発想
+</p>
+
+<p>
+何度も試行した結果を観測し
+</p>
+
+<p>　
+確率を計測すれば良い
+</p>
+</section>
+
+<section>
+<p>
+しかし
+</p>
+
+<p>
+何度計測すれば
+</p>
+
+<p>
+十分に真の確率に近づいたと言えるのだろう
+</p>
+
+<p>
+当時はこの問題に使える数学が発明されていなかった
+</p>
+</section>
+
+<section>
+<p>
+ニュートンとライプニッツ
+</p>
+
+<p>
+微積分を発明
+</p>
+
+<p>
+嫌がらせのように読みにくい論文
+</p>
+
+<p>
+ベルヌーイなら読めた
+</p>
+</section>
+
+<section>
+<p>
+ベルヌーイ
+</p>
+
+<p>
+大数の弱法則を発明
+</p>
+
+<p>
+元の論文Ars conjectandiでは
+</p>
+
+<p>
+黄金定理
+</p>
+</section>
+
+<section>
+<p>
+そういう経緯がありまして
+</p>
+
+<p>
+2種類の結果のうち
+</p>
+
+<p>
+いずれかをランダムで出す
+</p>
+
+<p>
+独立した試行を
+</p>
+
+<p>
+ベルヌーイ試行と呼ぶようになった
+</p>
+</section>
+
+<section>
+<h1>
+<ruby><rb>閑話休題</rb><rt>それはさておき</rt></ruby>
+</h1>
+</section>
+
+<section id="skip-history">
+<p>
+rand()ほど簡単に使えない
+</p>
+
+<p>
+使い方を暗記するのは難しい分量
+</p>
+
+<p>
+リファレンスを参照しながら書くしかない
+</p>
+</section>
+
+<section>
+<p>
+初心者には理解することが多すぎて使えず
+</p>
+
+<p>
+プログラマーには統計の知識を要求され
+</p>
+
+<p>
+統計学の素養ある人間にもコード量が多くて使いづらい
+</p>
+</section>
+
+<section>
+<p>
+しかし、rand()は問題がある。
+</p>
+</section>
+
+
+<section>
+<p>
+プログラマーが本当に欲しかったもの
+</p>
+
+
+<p>
+\[a \geq r \geq b \]
+</p>
+
+<p>
+の範囲に一様分布する整数の乱数rを返す
+</p>
+
+<pre><code class="cpp">randint( a, b ) ;
+</code></pre>
+</section>
+
+<section>
+<p>
+使い方
+</p>
+
+<pre><code class="cpp">int dice()
+{
+    return std::randint( 1, 6 ) ;
+}
+</code></pre>
+</section>
+
+<section>
+<p>
+randint()
+</p>
+
+<p>
+生の欄数列から整数の範囲指定の一様分布までを一気に扱う関数
+</p>
+
+<p>
+クラスではないのでオブジェクト管理が不要
+</p>
+</section>
+
+<section>
+<p>
+randint()のオブジェクト
+</p>
+
+<p>
+スレッドごとにdefault_random_engine型のオブジェクトを確保
+</p>
+
+<p>
+予測不可能な状態に初期化される
+</p>
+</section>
+
+<section>
+<p>
+万人に使いやすい乱数ライブラリ
+</p>
+</section>
+
+
+<section>
+<p>
+質問
+</p>
+</section>
+
+
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				history: true,
+                transition : "none" ,
+
+				// More info https://github.com/hakimel/reveal.js#dependencies
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+                    { src: 'plugin/math/math.js', async: true }
+				]
+			});
+		</script>
+	</body>
+</html>
